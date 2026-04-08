@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Dialer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Dialer Screen -->
+        <div class="dialer" id="dialerScreen">
+            <div class="display">
+                <input type="text" id="codeDisplay" class="code-input" placeholder="____" readonly>
+            </div>
+
+            <div class="keypad">
+                <button class="key" data-number="1">1</button>
+                <button class="key" data-number="2">2</button>
+                <button class="key" data-number="3">3</button>
+                <button class="key" data-number="4">4</button>
+                <button class="key" data-number="5">5</button>
+                <button class="key" data-number="6">6</button>
+                <button class="key" data-number="7">7</button>
+                <button class="key" data-number="8">8</button>
+                <button class="key" data-number="9">9</button>
+                <button class="key" id="infoBtn" title="Project info" aria-label="Info">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor">
+                        <circle cx="12" cy="5" r="1.4"/>
+                        <rect x="10.5" y="9" width="3" height="9" rx="1.2"/>
+                    </svg>
+                </button>
+                <button class="key" data-number="0">0</button>
+                <button class="key" id="cameraBtn" title="Open gallery" aria-label="Gallery" disabled>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+                        <path d="M21 5h-3.2l-1.4-1.8A1 1 0 0 0 15.6 3H8.4a1 1 0 0 0-.8.4L6.2 5H3a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zM12 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="controls">
+                <button id="clearBtn" class="control-btn clear">CLEAR</button>
+                <button id="callBtn" class="control-btn call">CALL</button>
+            </div>
+        </div>
+
+        <!-- Active Call Screen -->
+        <div class="call-screen" id="callScreen" style="display:none;">
+            <div class="call-info">
+                <div class="call-status">Call Active</div>
+                <div class="call-duration" id="callDuration">00:00</div>
+            </div>
+            <div class="call-controls">
+                <button id="endCallBtn" class="control-btn end-call">End Call</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    <!-- Info modal -->
+    <div id="infoModal" class="modal" role="dialog" aria-hidden="true">
+        <div class="card">
+            <button id="closeInfo" class="overlay-x modal-close" aria-label="Close info">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h3>Subsurface Exhibit</h3>
+            <br>
+            <p>This project is built from the voices of 25 individuals within the CU community. Their responses were collected and thoughtfully used to shape and curate the paintings in this exhibit.</p>
+            <br>
+            <p>Enter a code to hear the written responses behind each question that inspired the work, and follow the progression of each painting through the augmented reality overlay.</p>
+        </div>
+    </div>
+
+    <!-- Camera overlay (AR) -->
+    <div id="cameraOverlay" style="display:none;">
+        <div id="cameraContainer">
+            <button id="overlayCloseX" class="overlay-x" aria-label="Close overlay" title="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <video id="cameraVideo" autoplay playsinline></video>
+            <div id="overlayLayers"></div>
+            <div class="bottom-controls">
+                <input id="overlayOpacity" class="photo-slider" type="range" min="0" max="100" step="1" value="70" aria-label="Photo opacity">
+            </div>
+        </div>
+        <aside id="thumbSidebar">
+            <div id="thumbs"></div>
+        </aside>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  /* ---- DOM refs ---- */
+  const codeDisplay    = document.getElementById('codeDisplay');
+  const keypadEl       = document.querySelector('.keypad');
+  const clearBtn       = document.getElementById('clearBtn');
+  const callBtn        = document.getElementById('callBtn');
+  const audioPlayer    = document.getElementById('audioPlayer');
+  const dialerScreen   = document.getElementById('dialerScreen');
+  const callScreen     = document.getElementById('callScreen');
+  const endCallBtn     = document.getElementById('endCallBtn');
+  const callDuration   = document.getElementById('callDuration');
+  const infoBtn        = document.getElementById('infoBtn');
+  const infoModal      = document.getElementById('infoModal');
+  const closeInfo      = document.getElementById('closeInfo');
+  const cameraBtn      = document.getElementById('cameraBtn');
+  const cameraOverlay  = document.getElementById('cameraOverlay');
+  const cameraVideo    = document.getElementById('cameraVideo');
+  const overlayLayersEl= document.getElementById('overlayLayers');
+  const thumbsEl       = document.getElementById('thumbs');
+  const thumbSidebar   = document.getElementById('thumbSidebar');
+  const overlayCloseX  = document.getElementById('overlayCloseX');
+  const overlayOpacity = document.getElementById('overlayOpacity');
+
+  /* ---- State ---- */
+  let enteredCode      = '';
+  let playlist         = [];
+  let currentTrackIndex= 0;
+  let callStartTime    = null;
+  let callTimerInterval= null;
+  let cameraStream     = null;
+  let activePhotoFolder= null;
+  let activeAudioFolder= null;
+  let photoIndex       = 0;
+
+  const CODE_FOLDER_MAP = {
+    '0807': { folder: 'childhood', randomize: true },
+    '3600': { folder: 'weather',   randomize: true },
+    '1313': { folder: 'fear',      randomize: true },
+    '1201': { folder: 'hide',      randomize: true },
+    '1111': { folder: 'peace',     randomize: true }
+  };
+
+  /* ---- Helpers ---- */
+  function audioPath(file, folder) { return `audio/${folder || activeAudioFolder}/${file}`; }
+  function photoPath(file, folder) { return `photos/${folder || activePhotoFolder}/${file}`; }
+
+  async function fileExists(url) {
+    try {
+      const r = await fetch(url, { method: 'GET', headers: { Range: 'bytes=0-0' }, cache: 'no-cache' });
+      return r && (r.ok || r.status === 206);
+    } catch (e) { return false; }
+  }
+
+  function shuffleArray(a) { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } }
+
+  /* ---- UI state ---- */
+  function updateCodeState() {
+    const isValid = enteredCode && CODE_FOLDER_MAP.hasOwnProperty(enteredCode);
+    if (cameraBtn) cameraBtn.disabled = !isValid;
+    if (callBtn)   callBtn.disabled   = !enteredCode;
+    if (isValid) {
+      activeAudioFolder = CODE_FOLDER_MAP[enteredCode].folder;
+      activePhotoFolder = CODE_FOLDER_MAP[enteredCode].folder;
+    }
+  }
+
+  /* ---- Keypad ---- */
+  if (keypadEl) {
+    keypadEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button.key');
+      if (!btn) return;
+      if (btn.id === 'infoBtn' || btn.id === 'cameraBtn') return;
+      const num = btn.dataset.number;
+      if (!num) return;
+      enteredCode += num;
+      if (codeDisplay) codeDisplay.value = enteredCode;
+      updateCodeState();
+    });
+  }
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    enteredCode = '';
+    if (codeDisplay) codeDisplay.value = '';
+    updateCodeState();
+  });
+
+  /* ---- Info modal ---- */
+  if (infoBtn && infoModal && closeInfo) {
+    infoBtn.addEventListener('click',  () => { infoModal.style.display = 'flex'; });
+    closeInfo.addEventListener('click', () => { infoModal.style.display = 'none'; });
+    infoModal.addEventListener('click', (e) => { if (e.target === infoModal) infoModal.style.display = 'none'; });
+  }
+
+  /* ---- Build playlist ---- */
+  async function buildPlaylist(folder) {
+    const base = `audio/${folder}/`;
+    // try playlist.json first (best for GitHub Pages)
+    try {
+      const r = await fetch(base + 'playlist.json', { cache: 'no-cache' });
+      if (r.ok) { const list = await r.json(); return list.map(f => base + f); }
+    } catch (e) {}
+
+    // fallback: probe numbered files
+    const found = [];
+    for (let i = 1; i <= 30; i++) {
+      const candidates = [`${base}${i}.mp3`, `${base}${folder}${i}.mp3`];
+      for (const c of candidates) {
+        if (await fileExists(c)) { found.push(c); break; }
+      }
+    }
+    return found;
+  }
+
+  /* ---- Call timer ---- */
+  function startCallTimer() {
+    callStartTime = Date.now();
+    if (callTimerInterval) clearInterval(callTimerInterval);
+    callTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - callStartTime) / 1000);
+      if (callDuration) callDuration.textContent =
+        String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+    }, 500);
+  }
+
+  /* ---- Playback ---- */
+  function playTrack() {
+    if (!playlist.length || currentTrackIndex >= playlist.length) { endCall(); return; }
+    const src = playlist[currentTrackIndex];
+    audioPlayer.src = src;
+    audioPlayer.volume = 0.1;
+    audioPlayer.load();
+    audioPlayer.play().catch(e => { console.warn('play failed', e); endCall(); });
+    audioPlayer.onended = () => {
+      currentTrackIndex++;
+      // 1.2 second pause between tracks
+      setTimeout(() => { playTrack(); }, 1000);
+    };
+  }
+
+  /* ---- Start call ---- */
+  async function startCall(code) {
+    const mapping = CODE_FOLDER_MAP[code];
+    if (!mapping) { alert('Unknown code'); return; }
+    activeAudioFolder = mapping.folder;
+    activePhotoFolder = mapping.folder;
+
+    // switch UI
+    dialerScreen.style.display = 'none';
+    callScreen.style.display   = 'flex';
+    startCallTimer();
+
+    // set volume
+    audioPlayer.volume = 0.1;
+
+    // build playlist and play
+    playlist = await buildPlaylist(mapping.folder);
+    if (mapping.randomize) shuffleArray(playlist);
+    currentTrackIndex = 0;
+    if (playlist.length) playTrack();
+    else console.warn('No audio found for', mapping.folder);
+  }
+
+  /* ---- End call ---- */
+  function endCall() {
+    // restore dialer
+    dialerScreen.style.display = 'flex';
+    callScreen.style.display   = 'none';
+    // stop audio
+    try { audioPlayer.pause(); audioPlayer.removeAttribute('src'); audioPlayer.load(); } catch(e){}
+    // stop timer
+    if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+    // stop camera
+    if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+    // close overlay
+    if (cameraOverlay) cameraOverlay.style.display = 'none';
+    if (overlayLayersEl) overlayLayersEl.innerHTML = '';
+    if (thumbsEl) thumbsEl.innerHTML = '';
+    if (thumbSidebar) thumbSidebar.style.display = 'none';
+    // reset state
+    enteredCode = ''; playlist = []; currentTrackIndex = 0; photoIndex = 0;
+    activePhotoFolder = null; activeAudioFolder = null;
+    if (codeDisplay) codeDisplay.value = '';
+    updateCodeState();
+  }
+
+  if (callBtn)    callBtn.addEventListener('click', () => { if (enteredCode) startCall(enteredCode); });
+  if (endCallBtn) endCallBtn.addEventListener('click', endCall);
+
+  /* ---- AR overlay ---- */
+  let currentPhotos = [];
+
+  async function loadPhotos(folder) {
+    const base = `photos/${folder}/`;
+    // try photos.json first
+    try {
+      const r = await fetch(base + 'photos.json', { cache: 'no-cache' });
+      if (r.ok) { const list = await r.json(); return list.map(f => base + f); }
+    } catch(e) {}
+    // fallback: probe
+    const found = [];
+    for (let i = 1; i <= 20; i++) {
+      const url = `${base}${i}.jpg`;
+      if (await fileExists(url)) found.push(url);
+    }
+    return found;
+  }
+
+  function showOverlayImage(src) {
+    if (!overlayLayersEl) return;
+    overlayLayersEl.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'overlay-image';
+    div.style.backgroundImage = `url(${src})`;
+    div.style.opacity = '1';
+    overlayLayersEl.appendChild(div);
+  }
+
+  if (cameraBtn) {
+    cameraBtn.addEventListener('click', async () => {
+      if (!cameraOverlay) return;
+      const folder = activePhotoFolder || 'peace';
+
+      // toggle off
+      if (cameraOverlay.style.display === 'flex') {
+        cameraOverlay.style.display = 'none';
+        dialerScreen.style.display = 'flex';
+        if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+        return;
+      }
+
+      // open overlay fullscreen
+      cameraOverlay.style.display = 'flex';
+      dialerScreen.style.display = 'none';
+
+      // start camera
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (cameraVideo) { cameraVideo.srcObject = cameraStream; cameraVideo.play().catch(()=>{}); }
+      } catch(e) { console.warn('Camera not available', e); }
+
+      // load photos and set up slider
+      currentPhotos = await loadPhotos(folder);
+      if (currentPhotos.length) {
+        showOverlayImage(currentPhotos[0]);
+        if (overlayOpacity) {
+          overlayOpacity.min = 0;
+          overlayOpacity.max = currentPhotos.length - 1;
+          overlayOpacity.value = 0;
+          overlayOpacity.step = 1;
+          updateSliderFill();
+        }
+      }
+    });
+  }
+
+  // slider switches between photos + fill effect
+  function updateSliderFill() {
+    if (!overlayOpacity) return;
+    const min = Number(overlayOpacity.min) || 0;
+    const max = Number(overlayOpacity.max) || 1;
+    const val = Number(overlayOpacity.value) || 0;
+    const pct = ((val - min) / (max - min)) * 100;
+    overlayOpacity.style.background = `linear-gradient(to right, #fff ${pct}%, rgba(255,255,255,0.15) ${pct}%)`;
+    overlayOpacity.style.borderRadius = '6px';
+  }
+
+  if (overlayOpacity) {
+    overlayOpacity.addEventListener('input', () => {
+      const idx = parseInt(overlayOpacity.value, 10);
+      if (currentPhotos[idx]) {
+        showOverlayImage(currentPhotos[idx]);
+      }
+      updateSliderFill();
+    });
+  }
+
+  if (overlayCloseX) {
+    overlayCloseX.addEventListener('click', () => {
+      cameraOverlay.style.display = 'none';
+      dialerScreen.style.display = 'flex';
+      if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream = null; }
+    });
+  }
+
+  /* ---- Init ---- */
+  updateCodeState();
+});
+</script>
+</body>
+</html>
+
