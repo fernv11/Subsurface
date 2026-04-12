@@ -39,7 +39,8 @@ body {
 
 .display {
   width: 100%;
-  margin-bottom: 16px;
+  max-width: 260px;
+  margin-bottom: 24px;
 }
 
 .code-input {
@@ -60,6 +61,7 @@ body {
 
 .keypad {
   width: 100%;
+  max-width: 260px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
@@ -67,8 +69,8 @@ body {
 }
 
 .key {
-  width: 100%;
-  max-width: 80px;
+  width: 72px;
+  max-width: 72px;
   aspect-ratio: 1;
   border-radius: 50%;
   border: none;
@@ -95,10 +97,11 @@ body {
 
 .controls {
   width: 100%;
+  max-width: 260px;
   display: flex;
   flex-direction: row;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 24px;
 }
 
 .control-btn {
