@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!playlist.length || currentTrackIndex >= playlist.length) { endCall(); return; }
     const src = playlist[currentTrackIndex];
     audioPlayer.src = src;
-    audioPlayer.volume = 0.1;
+    audioPlayer.volume = 0.03;
     audioPlayer.load();
     audioPlayer.play().catch(e => { console.warn('play failed', e); endCall(); });
     audioPlayer.onended = () => {
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startCallTimer();
 
     // set volume
-    audioPlayer.volume = 0.1;
+    audioPlayer.volume = 0.03;
 
     // build playlist and play
     playlist = await buildPlaylist(mapping.folder);
