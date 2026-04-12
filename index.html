@@ -131,13 +131,28 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeAudioFolder= null;
   let photoIndex       = 0;
 
-  const CODE_FOLDER_MAP = {
-    '0807': { folder: 'childhood', randomize: true },
-    '3600': { folder: 'weather',   randomize: true },
-    '1313': { folder: 'fear',      randomize: true },
-    '1201': { folder: 'hide',      randomize: true },
-    '1111': { folder: 'peace',     randomize: true }
-  };
+  /* ---- Web Audio API for mobile volume control ---- */
+  let audioCtx   = null;
+  let gainNode   = null;
+  let sourceNode = null;
+  const TARGET_VOLUME = 0.03;
+
+  function ensureAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = TARGET_VOLUME;
+      gainNode.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function connectSource() {
+    if (sourceNode) return; // only connect once
+    ensureAudioContext();
+    sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+    sourceNode.connect(gainNode);
+  }
 
   /* ---- Helpers ---- */
   function audioPath(file, folder) { return `audio/${folder || activeAudioFolder}/${file}`; }
@@ -225,12 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!playlist.length || currentTrackIndex >= playlist.length) { endCall(); return; }
     const src = playlist[currentTrackIndex];
     audioPlayer.src = src;
-    audioPlayer.volume = 0.03;
+    audioPlayer.volume = 1.0;  // let gain node handle volume
     audioPlayer.load();
+    if (!sourceNode) connectSource();
     audioPlayer.play().catch(e => { console.warn('play failed', e); endCall(); });
     audioPlayer.onended = () => {
       currentTrackIndex++;
-      // 1.2 second pause between tracks
+      // 1 second pause between tracks
       setTimeout(() => { playTrack(); }, 1000);
     };
   }
@@ -247,8 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
     callScreen.style.display   = 'flex';
     startCallTimer();
 
-    // set volume
-    audioPlayer.volume = 0.03;
+    // init audio context (must be from user gesture)
+    ensureAudioContext();
 
     // build playlist and play
     playlist = await buildPlaylist(mapping.folder);
