@@ -45,6 +45,8 @@ body {
 
 .code-input {
   width: 100%;
+  max-width: 228px;
+  margin: 0 auto;
   height: 52px;
   font-size: 28px;
   text-align: center;
@@ -55,6 +57,7 @@ body {
   background: #333;
   color: #fff;
   font-weight: 600;
+  display: block;
 }
 
 .code-input::placeholder { color: #555; letter-spacing: 8px; }
