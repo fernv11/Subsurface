@@ -167,6 +167,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function shuffleArray(a) { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } }
 
+  /* ---- Code → folder mapping ---- */
+  const CODE_FOLDER_MAP = {
+    '0807': { folder: 'childhood', randomize: true },
+    '1111': { folder: 'peace', randomize: true },
+    '1313': { folder: 'fear', randomize: true },
+    '1201': { folder: 'hide', randomize: true },
+    '3600': { folder: 'weather', randomize: true },
+  };
+
   /* ---- UI state ---- */
   function updateCodeState() {
     const isValid = enteredCode && CODE_FOLDER_MAP.hasOwnProperty(enteredCode);
