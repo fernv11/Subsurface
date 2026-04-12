@@ -26,27 +26,22 @@ body {
 .dialer {
   background: #222;
   border-radius: 28px;
-  padding: 24px 20px;
+  padding: 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
   width: 100%;
   height: 94vh;
   height: 94dvh;
-  justify-content: center;
+  justify-content: space-evenly;
 }
 
 .display {
   width: 100%;
-  max-width: 260px;
-  margin-bottom: 24px;
 }
 
 .code-input {
   width: 100%;
-  max-width: 228px;
-  margin: 0 auto;
   height: 52px;
   font-size: 28px;
   text-align: center;
@@ -64,22 +59,21 @@ body {
 
 .keypad {
   width: 100%;
-  max-width: 260px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 14px;
   justify-items: center;
 }
 
 .key {
-  width: 72px;
-  max-width: 72px;
+  width: 100%;
+  max-width: 80px;
   aspect-ratio: 1;
   border-radius: 50%;
   border: none;
   background: #333;
   color: #fff;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -100,19 +94,17 @@ body {
 
 .controls {
   width: 100%;
-  max-width: 260px;
   display: flex;
   flex-direction: row;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 14px;
 }
 
 .control-btn {
   flex: 1;
-  padding: 12px 0;
+  padding: 14px 0;
   border: none;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
   cursor: pointer;
