@@ -245,19 +245,51 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ---- Playback ---- */
+  let skippedTracks = [];
+
   function playTrack() {
-    if (!playlist.length || currentTrackIndex >= playlist.length) { endCall(); return; }
+    if (!playlist.length || currentTrackIndex >= playlist.length) {
+      // retry skipped tracks once
+      if (skippedTracks.length) {
+        console.log('Retrying', skippedTracks.length, 'skipped tracks');
+        playlist = skippedTracks;
+        skippedTracks = [];
+        currentTrackIndex = 0;
+        setTimeout(() => { playTrack(); }, 1000);
+        return;
+      }
+      endCall();
+      return;
+    }
     const src = playlist[currentTrackIndex];
     audioPlayer.src = src;
     audioPlayer.volume = 1.0;  // let gain node handle volume
     audioPlayer.load();
     if (!sourceNode) connectSource();
-    audioPlayer.play().catch(e => { console.warn('play failed', e); endCall(); });
+
+    // clear previous handlers
+    audioPlayer.onended = null;
+    audioPlayer.onerror = null;
+
     audioPlayer.onended = () => {
       currentTrackIndex++;
-      // 1 second pause between tracks
       setTimeout(() => { playTrack(); }, 1000);
     };
+
+    // if a track fails to load, skip and retry later
+    audioPlayer.onerror = () => {
+      console.warn('Track failed, will retry later:', src);
+      skippedTracks.push(src);
+      currentTrackIndex++;
+      setTimeout(() => { playTrack(); }, 500);
+    };
+
+    audioPlayer.play().catch(e => {
+      console.warn('play() rejected, will retry later:', src, e);
+      skippedTracks.push(src);
+      currentTrackIndex++;
+      setTimeout(() => { playTrack(); }, 500);
+    });
   }
 
   /* ---- Start call ---- */
