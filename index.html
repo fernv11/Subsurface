@@ -247,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---- Playback ---- */
   let skippedTracks = [];
   let isRetrying = false;
+  let isSkipping = false;
 
   function playTrack() {
     if (!playlist.length || currentTrackIndex >= playlist.length) {
@@ -263,7 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
       endCall();
       return;
     }
+
+    isSkipping = false;
     const src = playlist[currentTrackIndex];
+    console.log('Playing track', currentTrackIndex + 1, 'of', playlist.length, ':', src);
     audioPlayer.src = src;
     audioPlayer.volume = 1.0;  // let gain node handle volume
     audioPlayer.load();
@@ -273,24 +277,28 @@ document.addEventListener('DOMContentLoaded', () => {
     audioPlayer.onended = null;
     audioPlayer.onerror = null;
 
+    function skipTrack(reason) {
+      if (isSkipping) return; // prevent double-skip
+      isSkipping = true;
+      console.warn(reason, src);
+      if (!isRetrying) skippedTracks.push(src);
+      currentTrackIndex++;
+      setTimeout(() => { playTrack(); }, 500);
+    }
+
     audioPlayer.onended = () => {
+      if (isSkipping) return;
+      console.log('Track finished:', src);
       currentTrackIndex++;
       setTimeout(() => { playTrack(); }, 1000);
     };
 
-    // if a track fails to load, skip it
     audioPlayer.onerror = () => {
-      console.warn('Track failed, skipping:', src);
-      if (!isRetrying) skippedTracks.push(src);
-      currentTrackIndex++;
-      setTimeout(() => { playTrack(); }, 500);
+      skipTrack('Track failed to load:');
     };
 
     audioPlayer.play().catch(e => {
-      console.warn('play() rejected, skipping:', src, e);
-      if (!isRetrying) skippedTracks.push(src);
-      currentTrackIndex++;
-      setTimeout(() => { playTrack(); }, 500);
+      skipTrack('play() rejected:');
     });
   }
 
@@ -304,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // reset retry state
     skippedTracks = [];
     isRetrying = false;
+    isSkipping = false;
 
     // switch UI
     dialerScreen.style.display = 'none';
