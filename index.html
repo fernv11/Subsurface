@@ -246,15 +246,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---- Playback ---- */
   let skippedTracks = [];
+  let isRetrying = false;
 
   function playTrack() {
     if (!playlist.length || currentTrackIndex >= playlist.length) {
-      // retry skipped tracks once
-      if (skippedTracks.length) {
+      // retry skipped tracks once only
+      if (skippedTracks.length && !isRetrying) {
         console.log('Retrying', skippedTracks.length, 'skipped tracks');
         playlist = skippedTracks;
         skippedTracks = [];
         currentTrackIndex = 0;
+        isRetrying = true;
         setTimeout(() => { playTrack(); }, 1000);
         return;
       }
@@ -276,17 +278,17 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { playTrack(); }, 1000);
     };
 
-    // if a track fails to load, skip and retry later
+    // if a track fails to load, skip it
     audioPlayer.onerror = () => {
-      console.warn('Track failed, will retry later:', src);
-      skippedTracks.push(src);
+      console.warn('Track failed, skipping:', src);
+      if (!isRetrying) skippedTracks.push(src);
       currentTrackIndex++;
       setTimeout(() => { playTrack(); }, 500);
     };
 
     audioPlayer.play().catch(e => {
-      console.warn('play() rejected, will retry later:', src, e);
-      skippedTracks.push(src);
+      console.warn('play() rejected, skipping:', src, e);
+      if (!isRetrying) skippedTracks.push(src);
       currentTrackIndex++;
       setTimeout(() => { playTrack(); }, 500);
     });
@@ -298,6 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mapping) { alert('Unknown code'); return; }
     activeAudioFolder = mapping.folder;
     activePhotoFolder = mapping.folder;
+
+    // reset retry state
+    skippedTracks = [];
+    isRetrying = false;
 
     // switch UI
     dialerScreen.style.display = 'none';
